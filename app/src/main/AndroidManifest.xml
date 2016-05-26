@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="byeonghoon.x579.smartlock.cardapp">
+
+    <!-- Permissions and Features -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-feature android:name="android.hardware.nfc.hce" android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+        <activity android:name=".MainEntryActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service android:name=".CardService"
+            android:enabled="true" android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+        </service>
+    </application>
+
+</manifest>
