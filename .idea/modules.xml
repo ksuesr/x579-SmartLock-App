@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/JAVA_TCP_SDK_2.0.0/JAVA_TCP_SDK_2.0.0.iml" filepath="$PROJECT_DIR$/JAVA_TCP_SDK_2.0.0/JAVA_TCP_SDK_2.0.0.iml" />
       <module fileurl="file://$PROJECT_DIR$/SmartLockCardApp.iml" filepath="$PROJECT_DIR$/SmartLockCardApp.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
     </modules>

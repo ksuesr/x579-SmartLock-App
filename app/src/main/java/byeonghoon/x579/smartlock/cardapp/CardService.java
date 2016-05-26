@@ -6,6 +6,8 @@ import android.os.Bundle;
 import android.util.Log;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 /*
  * TODO: 아마 여기에 IoT device-to-server 통신 기능도 추가해야 할 것.
@@ -20,7 +22,10 @@ public class CardService extends HostApduService {
     //TODO: Subject to modify/hardcoding :(
     private static final byte[] SELECT_APDU = BuildSelectApdu("F0010203040506");
 
+    private Map<String, Double> input_rows;
+
     public CardService() {
+        input_rows = new HashMap<>();
     }
 
     @Override
@@ -29,13 +34,17 @@ public class CardService extends HostApduService {
     @Override
     public byte[] processCommandApdu(byte[] commandApdu, Bundle extras) {
         Log.i(TAG, "Received APDU: " + ByteArrayToHexString(commandApdu));
+        input_rows = new HashMap<>();
+
         // If the APDU matches the SELECT AID command for this service,
         // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
         if (Arrays.equals(SELECT_APDU, commandApdu)) {
             String account = AccountStorage.GetAccount(this);
             byte[] accountBytes = account.getBytes();
             Log.i(TAG, "Sending account number: " + account);
-            //TODO: add AsyncTask handling server communication
+            //TODO: add something useful to server
+            PostToServerTask task = new PostToServerTask(input_rows);
+            task.execute();
 
             return ConcatArrays(accountBytes, SELECT_OK_SW);
         } else {
