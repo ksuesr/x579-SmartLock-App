@@ -3,8 +3,22 @@ package byeonghoon.x579.smartlock.cardapp;
 
 import android.nfc.cardemulation.HostApduService;
 import android.os.Bundle;
+import android.util.Log;
 
+import java.util.Arrays;
+
+/*
+ * TODO: 아마 여기에 IoT device-to-server 통신 기능도 추가해야 할 것.
+ */
 public class CardService extends HostApduService {
+
+    private static final String TAG = "CardService";
+
+    private static final String SELECT_APDU_HEADER = "00A40400";
+    private static final byte[] SELECT_OK_SW = HexStringToByteArray("9000");
+    private static final byte[] UNKNOWN_COMMAND_SW = HexStringToByteArray("0000");
+    //TODO: Subject to modify/hardcoding :(
+    private static final byte[] SELECT_APDU = BuildSelectApdu("F0010203040506");
 
     public CardService() {
     }
@@ -14,7 +28,20 @@ public class CardService extends HostApduService {
 
     @Override
     public byte[] processCommandApdu(byte[] commandApdu, Bundle extras) {
-        return HexStringToByteArray("0000");
+        Log.i(TAG, "Received APDU: " + ByteArrayToHexString(commandApdu));
+        // If the APDU matches the SELECT AID command for this service,
+        // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
+        if (Arrays.equals(SELECT_APDU, commandApdu)) {
+            String account = AccountStorage.GetAccount(this);
+            byte[] accountBytes = account.getBytes();
+            Log.i(TAG, "Sending account number: " + account);
+            //TODO: add AsyncTask handling server communication
+
+            return ConcatArrays(accountBytes, SELECT_OK_SW);
+        } else {
+            return UNKNOWN_COMMAND_SW;
+        }
+
     }
 
     public static byte[] HexStringToByteArray(String s) throws IllegalArgumentException {
@@ -41,5 +68,25 @@ public class CardService extends HostApduService {
             hexChars[j * 2 + 1] = hexArray[v & 0x0F]; // Select hex character from lower nibble
         }
         return new String(hexChars);
+    }
+
+    public static byte[] BuildSelectApdu(String aid) {
+        // Format: [CLASS | INSTRUCTION | PARAMETER 1 | PARAMETER 2 | LENGTH | DATA]
+        return HexStringToByteArray(SELECT_APDU_HEADER + String.format("%02X",
+                aid.length() / 2) + aid);
+    }
+
+    public static byte[] ConcatArrays(byte[] first, byte[]... rest) {
+        int totalLength = first.length;
+        for (byte[] array : rest) {
+            totalLength += array.length;
+        }
+        byte[] result = Arrays.copyOf(first, totalLength);
+        int offset = first.length;
+        for (byte[] array : rest) {
+            System.arraycopy(array, 0, result, offset, array.length);
+            offset += array.length;
+        }
+        return result;
     }
 }
