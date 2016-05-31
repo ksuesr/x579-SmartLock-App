@@ -30,12 +30,18 @@ public class CardService extends HostApduService {
 
     @Override
     public byte[] processCommandApdu(byte[] commandApdu, Bundle extras) {
-        Log.i(TAG, "Received APDU: " + ByteArrayToHexString(commandApdu));
+        String stringifiedApdu = ByteArrayToHexString(commandApdu);
+        Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
 
         // If the APDU matches the SELECT AID command for this service,
         // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
         Card target = null;
+        if("F0000000000000".equals(stringifiedApdu)) {
+            Log.i(TAG, "Now using temporary permission");
+            //Assign temporary ID to temporary card
+            target = new Card(stringifiedApdu, "TEMP", -1);
+        }
         Iterator<Card> iterator = Card.getCardList().iterator();
         while(iterator.hasNext()) {
             target = iterator.next();
@@ -44,7 +50,12 @@ public class CardService extends HostApduService {
             }
         }
         if (target != null) {
-            String account = AccountStorage.GetAccount(this, target.getCardId());
+            String account;
+            if(target.getCardId() >= 0) {
+                account = AccountStorage.GetAccount(this, target.getCardId());
+            } else {
+                account = "Please generate from input random code!!!";
+            }
             byte[] accountBytes = account.getBytes();
             Log.i(TAG, "Sending account number: " + account);
 

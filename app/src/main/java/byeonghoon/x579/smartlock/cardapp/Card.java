@@ -17,6 +17,7 @@ public class Card {
 
     public byte[] getApdu() { return matched_apdu; }
     public int getCardId() { return card_id; }
+    public String getTitle() { return desc; }
 
     public Card(String cardKey, String desc, int id) {
         matched_apdu = CardService.BuildSelectApdu(cardKey);
@@ -27,17 +28,35 @@ public class Card {
     //
     // static members
     //
+    // consider to use Map instance instead
     private static List<Card> card_list;
+    private static int head = 0;
 
     static {
         card_list = new ArrayList<>();
-        //TODO: restore from preference storage
     }
 
-    public static void addNewCard(Context c, String cardKey, String secret, String desc) {
+    public static void addNewCard(Context c, String cardKey, String secret, String title) {
         int id = card_list.size();
-        card_list.add(new Card(cardKey, desc, id));
+        card_list.add(new Card(cardKey, title, id));
         AccountStorage.SetAccount(c, secret, id);
+        SessionStorage.set(c, "max_id", "" + id);
+        SessionStorage.set(c, "card[" + id + "].key", cardKey);
+        SessionStorage.set(c, "card[" + id + "].title", title);
+    }
+
+    public static void deleteCard(Context c, int id) {
+        Iterator<Card> it = card_list.iterator();
+        Card card = null;
+        while(it.hasNext()) {
+            card = it.next();
+            if(card.getCardId() != id) break;
+        }
+        if(card != null) {
+            card_list.remove(card);
+            SessionStorage.expire(c, "card[" + id + "].key");
+            SessionStorage.expire(c, "card[" + id + "].title");
+        }
     }
 
     public static List<Card> getCardList() {

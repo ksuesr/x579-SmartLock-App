@@ -61,7 +61,11 @@ public class MainEntryActivity extends AppCompatActivity {
             case R.id.main_menu_add:
 
                 return true;
+            case R.id.main_menu_receive_permission:
+
+                return true;
             case R.id.main_menu_about:
+
                 return true;
             default:
         }

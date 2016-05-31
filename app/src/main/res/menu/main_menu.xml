@@ -4,6 +4,9 @@
         android:id="@+id/main_menu_add"
         android:title="@string/main_menu_add" />
     <item
+        android:id="@+id/main_menu_receive_permission"
+        android:title="@string/main_menu_receive_perm" />
+    <item
         android:id="@+id/main_menu_about"
         android:title="@string/main_menu_about" />
 </menu>
