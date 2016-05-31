@@ -36,8 +36,18 @@ public class Card {
         card_list = new ArrayList<>();
     }
 
+    public static void globalInit(Context c) {
+        int max_id = Integer.parseInt(SessionStorage.get(c, "max_id", "0"));
+        for(int i = 0; i <= max_id; i++) {
+            if(SessionStorage.exists(c, i)) {
+                card_list.add(new Card(SessionStorage.get(c, "card[" + i + " ].key", "empty"),
+                                       SessionStorage.get(c, "card[" + i + "].title", "empty"), i));
+            }
+        }
+    }
+
     public static void addNewCard(Context c, String cardKey, String secret, String title) {
-        int id = card_list.size();
+        int id = Integer.parseInt(SessionStorage.get(c, "max_id", "0"));
         card_list.add(new Card(cardKey, title, id));
         AccountStorage.SetAccount(c, secret, id);
         SessionStorage.set(c, "max_id", "" + id);

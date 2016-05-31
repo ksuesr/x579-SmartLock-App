@@ -11,7 +11,7 @@ public class SessionStorage {
 
     public static void set(Context c, String key, String value) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        prefs.edit().putString(key, value).commit();
+        prefs.edit().putString(key, value).apply();
     }
 
     public static String get(Context c, String key, String default_value) {
@@ -26,6 +26,6 @@ public class SessionStorage {
 
     public static void expire(Context c, String key) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-        prefs.edit().remove(key).commit();
+        prefs.edit().remove(key).apply();
     }
 }

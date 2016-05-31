@@ -27,8 +27,7 @@ public class AccountStorage {
     public static String GetAccount(Context c, int id) {
         synchronized (sAccountLock) {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-            String account = prefs.getString(PREF_ACCOUNT_NUMBER + "-" + id, DEFAULT_ACCOUNT_NUMBER);
-            return account;
+            return prefs.getString(PREF_ACCOUNT_NUMBER + "-" + id, DEFAULT_ACCOUNT_NUMBER);
         }
     }
 }

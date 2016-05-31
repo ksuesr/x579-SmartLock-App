@@ -5,7 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import java.util.Iterator;
+import java.util.List;
 
 /**
  * Created by Byeonghoon on 31-May-16.
@@ -30,10 +30,10 @@ public class LockViewAdapter extends RecyclerView.Adapter<LockViewAdapter.ViewHo
     @Override
     public void onBindViewHolder(ViewHolderImpl holder, int position) {
         Card target = null;
-        Iterator<Card> iterator = Card.getCardList().iterator();
-        while(iterator.hasNext()) {
-            target = iterator.next();
-            if(target.getCardId() == position) {
+        List<Card> list = Card.getCardList();
+        for(Card c : list) {
+            if(c.getCardId() == position) {
+                target = c;
                 break;
             }
         }

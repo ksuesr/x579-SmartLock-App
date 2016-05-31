@@ -7,7 +7,7 @@ import android.util.Log;
 
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 
@@ -23,6 +23,7 @@ public class CardService extends HostApduService {
 
     public CardService() {
         input_rows = new HashMap<>();
+        Card.globalInit(this);
     }
 
     @Override
@@ -42,10 +43,10 @@ public class CardService extends HostApduService {
             //Assign temporary ID to temporary card
             target = new Card(stringifiedApdu, "TEMP", -1);
         }
-        Iterator<Card> iterator = Card.getCardList().iterator();
-        while(iterator.hasNext()) {
-            target = iterator.next();
+        List<Card> card_list = Card.getCardList();
+        for(Card c : card_list) {
             if(Arrays.equals(target.getApdu(), commandApdu)) {
+                target = c;
                 break;
             }
         }
