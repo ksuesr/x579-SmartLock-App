@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Smart Lock</string>
+    <string name="main_menu_add">Add new</string>
+    <string name="main_menu_about">About</string>
 </resources>
