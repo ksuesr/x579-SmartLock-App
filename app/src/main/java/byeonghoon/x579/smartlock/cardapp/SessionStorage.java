@@ -24,6 +24,11 @@ public class SessionStorage {
         return prefs.contains("card[" + id + "].key");
     }
 
+    public static boolean exists(Context c, String key) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
+        return prefs.contains(key);
+    }
+
     public static void expire(Context c, String key) {
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
         prefs.edit().remove(key).apply();

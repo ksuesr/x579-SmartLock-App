@@ -18,12 +18,13 @@ public class CardService extends HostApduService {
     private static final String SELECT_APDU_HEADER = "00A40400";
     private static final byte[] SELECT_OK_SW = HexStringToByteArray("9000");
     private static final byte[] UNKNOWN_COMMAND_SW = HexStringToByteArray("0000");
+    private static final String APDU_FOR_TEMP_PERMISSION = "F0000000000000";
 
     private Map<String, Double> input_rows;
 
     public CardService() {
         input_rows = new HashMap<>();
-        Card.globalInit(this);
+        Card.globalInit(getApplicationContext());
     }
 
     @Override
@@ -38,7 +39,7 @@ public class CardService extends HostApduService {
         // If the APDU matches the SELECT AID command for this service,
         // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
         Card target = null;
-        if("F0000000000000".equals(stringifiedApdu)) {
+        if(APDU_FOR_TEMP_PERMISSION.equals(stringifiedApdu)) {
             Log.i(TAG, "Now using temporary permission");
             //Assign temporary ID to temporary card
             target = new Card(stringifiedApdu, "TEMP", -1);

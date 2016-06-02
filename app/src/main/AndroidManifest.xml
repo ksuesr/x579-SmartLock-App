@@ -42,7 +42,13 @@
 
         <activity android:name=".ControlActivity" />
         <activity android:name=".RecordListActivity" />
-        <activity android:name=".RegisterLockActivity"></activity>
+        <activity android:name=".RegisterLockActivity" />
+        <activity android:name=".FirstRunActivity" />
+        <activity
+            android:name=".AboutActivity"
+            android:label="@string/title_about"
+            android:theme="@style/Theme.AppCompat.Dialog"></activity>
+        <activity android:name=".ReceivePermissionActivity"></activity>
     </application>
 
 </manifest>

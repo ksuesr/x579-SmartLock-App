@@ -1,9 +1,11 @@
 package byeonghoon.x579.smartlock.cardapp;
 
+import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import java.util.List;
 
@@ -40,6 +42,24 @@ public class LockViewAdapter extends RecyclerView.Adapter<LockViewAdapter.ViewHo
         View v = holder.myView;
 
         //modify view via v.findViewById + something :)
+        TextView text = (TextView) v.findViewById(R.id.item_title);
+        text.setText(target.getTitle());
+        TextView textbutton_control = (TextView) v.findViewById(R.id.textbutton_lock_control);
+        TextView textbutton_log = (TextView) v.findViewById(R.id.textbutton_lock_log);
+        final int id = target.getCardId();
+
+        textbutton_control.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Intent sendIntent = new Intent(v.getContext(), ControlActivity.class);
+                sendIntent.putExtra("Card_ID", id);
+            }
+        });
+        textbutton_log.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                Intent sendIntent = new Intent(v.getContext(), RecordListActivity.class);
+                sendIntent.putExtra("Card_ID", id);
+            }
+        });
     }
 
     @Override public int getItemCount() { return Card.listCount(); }
