@@ -23,6 +23,8 @@ public class MainEntryActivity extends AppCompatActivity {
     private RecyclerView.Adapter mRecyclerAdapter;
     private RecyclerView.LayoutManager mRecyclerLayout;
 
+    private boolean isInitialized = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -30,7 +32,7 @@ public class MainEntryActivity extends AppCompatActivity {
 
         //TODO: search for preference storage for list of cards
         // if list doesn't exists, promote to add activity
-        if(!SessionStorage.exists(this, "user.id")) {
+        if(!SessionStorage.exists(getApplicationContext(), "user.id")) {
             Toast.makeText(getApplicationContext(), "You need to sign in first", Toast.LENGTH_SHORT).show();
             Intent first_run = new Intent(this, FirstRunActivity.class);
             startActivityForResult(first_run, REQUEST_FIRST_RUN);
@@ -51,6 +53,11 @@ public class MainEntryActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(mRecyclerAdapter);
 
         Log.i(TAG, "I'm ready :)");
+        isInitialized = true;
+    }
+
+    protected void initViewUnlessInitialized() {
+        if(!isInitialized) initView();
     }
 
     protected void onPause() {
@@ -102,6 +109,7 @@ public class MainEntryActivity extends AppCompatActivity {
 
         switch(requestCode) {
             case REQUEST_REGISTER_LOCK:
+                initViewUnlessInitialized();
                 if(resultCode == RESULT_OK) {
                     String name = intent.getExtras().getString("title");
                     Toast.makeText(getBaseContext(), "New lock(" + name + ") registered", Toast.LENGTH_LONG).show();
@@ -111,7 +119,7 @@ public class MainEntryActivity extends AppCompatActivity {
                 }
                 break;
             case REQUEST_FIRST_RUN:
-                initView();
+                initViewUnlessInitialized();
                 mRecyclerView.requestLayout();
                 break;
         }

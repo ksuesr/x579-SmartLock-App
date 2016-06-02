@@ -36,6 +36,12 @@ public class CardService extends HostApduService {
         Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
 
+        if(SessionStorage.exists(getApplicationContext(), "permission.time")) {
+            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time", "-1"));
+            if(System.currentTimeMillis() > (start + 180000))
+                deleteTempPermission();
+        }
+
         // If the APDU matches the SELECT AID command for this service,
         // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
         Card target = null;
@@ -56,7 +62,11 @@ public class CardService extends HostApduService {
             if(target.getCardId() >= 0) {
                 account = AccountStorage.GetAccount(this, target.getCardId());
             } else {
-                account = "Please generate from input random code!!!";
+                String account_frag_1 = SessionStorage.get(getApplicationContext(), "permission.frag.1", "0000");
+                String account_frag_2 = SessionStorage.get(getApplicationContext(), "permission.frag.2", "0000");
+                String account_frag_3 = SessionStorage.get(getApplicationContext(), "permission.frag.3", "000");
+                String account_frag_4 = SessionStorage.get(getApplicationContext(), "permission.frag.4", "000");
+                account = account_frag_2 + account_frag_4 + account_frag_3 + account_frag_1;
             }
             byte[] accountBytes = account.getBytes();
             Log.i(TAG, "Sending account number: " + account);
@@ -65,11 +75,19 @@ public class CardService extends HostApduService {
             PostToServerTask task = new PostToServerTask(input_rows);
             task.execute();
 
-            return ConcatArrays(accountBytes, SELECT_OK_SW);
+            return ConcatArrays(accountBytes, SELECT_OK_SW, HexStringToByteArray(SessionStorage.get(getApplicationContext(), "user.id", "")));
         } else {
             return UNKNOWN_COMMAND_SW;
         }
 
+    }
+
+    public void deleteTempPermission() {
+        SessionStorage.expire(getApplicationContext(), "permission.frag.1");
+        SessionStorage.expire(getApplicationContext(), "permission.frag.2");
+        SessionStorage.expire(getApplicationContext(), "permission.frag.3");
+        SessionStorage.expire(getApplicationContext(), "permission.frag.4");
+        SessionStorage.expire(getApplicationContext(), "permission.time");
     }
 
     public static byte[] HexStringToByteArray(String s) throws IllegalArgumentException {

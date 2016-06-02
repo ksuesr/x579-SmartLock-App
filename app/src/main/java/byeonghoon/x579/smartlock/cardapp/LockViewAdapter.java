@@ -50,14 +50,14 @@ public class LockViewAdapter extends RecyclerView.Adapter<LockViewAdapter.ViewHo
 
         textbutton_control.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
-                Intent sendIntent = new Intent(v.getContext(), ControlActivity.class);
-                sendIntent.putExtra("Card_ID", id);
+                //send control to server
             }
         });
         textbutton_log.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 Intent sendIntent = new Intent(v.getContext(), RecordListActivity.class);
                 sendIntent.putExtra("Card_ID", id);
+                v.getContext().startActivity(sendIntent);
             }
         });
     }
