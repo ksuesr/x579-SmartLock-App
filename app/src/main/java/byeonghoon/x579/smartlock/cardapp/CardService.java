@@ -1,6 +1,8 @@
 package byeonghoon.x579.smartlock.cardapp;
 
 
+import android.content.Context;
+import android.location.*;
 import android.nfc.cardemulation.HostApduService;
 import android.os.Bundle;
 import android.util.Log;
@@ -11,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class CardService extends HostApduService {
+public class CardService extends HostApduService implements LocationListener {
 
     private static final String TAG = "CardService";
 
@@ -33,29 +35,33 @@ public class CardService extends HostApduService {
     @Override
     public byte[] processCommandApdu(byte[] commandApdu, Bundle extras) {
         String stringifiedApdu = ByteArrayToHexString(commandApdu);
+        boolean is_temporary = false;
         Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
 
-        if(SessionStorage.exists(getApplicationContext(), "permission.time")) {
-            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time", "-1"));
-            if(System.currentTimeMillis() > (start + 180000))
+        if(SessionStorage.exists(getApplicationContext(), "permission.time.start")) {
+            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.start", "-1"));
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.duration", "-1"))))
                 deleteTempPermission();
+            else
+                is_temporary = true;
         }
 
         // If the APDU matches the SELECT AID command for this service,
         // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
         Card target = null;
-        if(APDU_FOR_TEMP_PERMISSION.equals(stringifiedApdu)) {
-            Log.i(TAG, "Now using temporary permission");
-            //Assign temporary ID to temporary card
-            target = new Card(stringifiedApdu, "TEMP", -1);
-        }
         List<Card> card_list = Card.getCardList();
         for(Card c : card_list) {
             if(Arrays.equals(target.getApdu(), commandApdu)) {
                 target = c;
                 break;
             }
+        }
+
+        if(is_temporary) {
+            Log.i(TAG, "Now using temporary permission");
+            //Assign temporary ID to temporary card
+            target = new Card(stringifiedApdu, "TEMP", -1);
         }
         if (target != null) {
             String account;
@@ -72,6 +78,8 @@ public class CardService extends HostApduService {
             Log.i(TAG, "Sending account number: " + account);
 
             //TODO: add something useful to server
+            requestLocation();
+            input_rows.put("isUnlocked", 0.0);
             PostToServerTask task = new PostToServerTask(input_rows);
             task.execute();
 
@@ -87,7 +95,8 @@ public class CardService extends HostApduService {
         SessionStorage.expire(getApplicationContext(), "permission.frag.2");
         SessionStorage.expire(getApplicationContext(), "permission.frag.3");
         SessionStorage.expire(getApplicationContext(), "permission.frag.4");
-        SessionStorage.expire(getApplicationContext(), "permission.time");
+        SessionStorage.expire(getApplicationContext(), "permission.time.start");
+        SessionStorage.expire(getApplicationContext(), "permission.time.duration");
     }
 
     public static byte[] HexStringToByteArray(String s) throws IllegalArgumentException {
@@ -134,5 +143,74 @@ public class CardService extends HostApduService {
             offset += array.length;
         }
         return result;
+    }
+
+    public void requestLocation() {
+        final String tag_location = TAG + ".Location";
+        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        // 정확도
+        criteria.setAccuracy(Criteria.NO_REQUIREMENT);
+        // 전원 소비량
+        criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
+        // 고도, 높이 값을 얻어 올지를 결정
+        criteria.setAltitudeRequired(false);
+        // provider 기본 정보(방위, 방향)
+        criteria.setBearingRequired(false);
+        // 속도
+        criteria.setSpeedRequired(false);
+        // 위치 정보를 얻어 오는데 들어가는 금전적 비용
+        criteria.setCostAllowed(true);
+
+        String provider = manager.getBestProvider(criteria, true);
+
+        if (manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+            provider = LocationManager.NETWORK_PROVIDER;
+        } else {
+            provider = LocationManager.GPS_PROVIDER;
+        }
+
+        Log.d(tag_location, "provider : " + provider);
+
+        Location location = null;
+
+        try {
+            location = manager.getLastKnownLocation(provider);
+        } catch (SecurityException se) {
+            Log.w(tag_location, se);
+        }
+
+        if (location != null) {
+            input_rows.put("latitude", location.getLatitude());
+            input_rows.put("longitude", location.getLongitude());
+        }
+
+        try {
+            manager.requestLocationUpdates(provider, 0, 0, this);
+        } catch (SecurityException se) {
+            Log.w(tag_location, se);
+        }
+    }
+
+
+    @Override
+    public void onLocationChanged(Location location) {
+        input_rows.put("latitude", location.getLatitude());
+        input_rows.put("longitude", location.getLongitude());
+    }
+
+    @Override
+    public void onStatusChanged(String s, int i, Bundle bundle) {
+
+    }
+
+    @Override
+    public void onProviderEnabled(String s) {
+
+    }
+
+    @Override
+    public void onProviderDisabled(String s) {
+
     }
 }

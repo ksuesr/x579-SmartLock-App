@@ -83,11 +83,11 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Cancel"
+            android:text="Back"
             android:id="@+id/button_cancel_permission"
             android:layout_marginTop="230dp"
             android:layout_marginStart="55dp"
-            android:onClick="buttonCancelPermPressed"/>
+            android:onClick="buttonBackPermPressed"/>
     </LinearLayout>
 
 

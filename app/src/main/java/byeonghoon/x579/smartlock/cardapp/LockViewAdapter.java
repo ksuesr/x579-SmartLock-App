@@ -44,20 +44,22 @@ public class LockViewAdapter extends RecyclerView.Adapter<LockViewAdapter.ViewHo
         //modify view via v.findViewById + something :)
         TextView text = (TextView) v.findViewById(R.id.item_title);
         text.setText(target.getTitle());
-        TextView textbutton_control = (TextView) v.findViewById(R.id.textbutton_lock_control);
         TextView textbutton_log = (TextView) v.findViewById(R.id.textbutton_lock_log);
+        TextView textbutton_permission = (TextView) v.findViewById(R.id.textbutton_lock_send_perm);
         final int id = target.getCardId();
 
-        textbutton_control.setOnClickListener(new View.OnClickListener() {
-            @Override public void onClick(View v) {
-                //send control to server
-            }
-        });
+
         textbutton_log.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 Intent sendIntent = new Intent(v.getContext(), RecordListActivity.class);
                 sendIntent.putExtra("Card_ID", id);
                 v.getContext().startActivity(sendIntent);
+            }
+        });
+        textbutton_permission.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                //send permission request to server.
+                //also, generate 14-digit random code
             }
         });
     }
