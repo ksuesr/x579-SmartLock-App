@@ -43,8 +43,11 @@ public class CardService extends HostApduService {
 
         if(SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
             long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.receive.start", "-1"));
-            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.receive.duration", "-1"))))
-                deleteTempPermission();
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.receive.duration", "-1")))) {
+                SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");
+                SessionStorage.expire(getApplicationContext(), "permission.time.receive.duration");
+                SessionStorage.expire(getApplicationContext(), "permission.temporary.receive.code");
+            }
             else {
                 is_temporary = true;
                 type = "07";
@@ -52,8 +55,12 @@ public class CardService extends HostApduService {
 
         } else if(SessionStorage.exists(getApplicationContext(), "permission.time.send.start")) {
             long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.send.start", "-1"));
-            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.send.duration", "-1"))))
-                deleteTempPermission();
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.send.duration", "-1")))) {
+                SessionStorage.expire(getApplicationContext(), "permission.time.send.start");
+                SessionStorage.expire(getApplicationContext(), "permission.time.send.duration");
+                SessionStorage.expire(getApplicationContext(), "permission.temporary.send.configure");
+                SessionStorage.expire(getApplicationContext(), "permission.temporary.send.code");
+            }
             else {
                 is_temporary = true;
                 type = "05";
@@ -104,13 +111,6 @@ public class CardService extends HostApduService {
             return UNKNOWN_COMMAND_SW;
         }
 
-    }
-
-    public void deleteTempPermission() {
-        SessionStorage.expire(getApplicationContext(), "permission.temporary");
-        SessionStorage.expire(getApplicationContext(), "permission.time.start");
-        SessionStorage.expire(getApplicationContext(), "permission.time.duration");
-        SessionStorage.expire(getApplicationContext(), "permission.temp.code");
     }
 
     public static byte[] HexStringToByteArray(String s) throws IllegalArgumentException {

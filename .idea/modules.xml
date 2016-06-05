@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/JAVA_TCP_SDK_2.0.0/JAVA_TCP_SDK_2.0.0.iml" filepath="$PROJECT_DIR$/JAVA_TCP_SDK_2.0.0/JAVA_TCP_SDK_2.0.0.iml" />
       <module fileurl="file://$PROJECT_DIR$/SmartLockCardApp.iml" filepath="$PROJECT_DIR$/SmartLockCardApp.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/iotmakers_sdk_android/iotmakers_sdk_android.iml" filepath="$PROJECT_DIR$/iotmakers_sdk_android/iotmakers_sdk_android.iml" />
     </modules>
   </component>
 </project>
