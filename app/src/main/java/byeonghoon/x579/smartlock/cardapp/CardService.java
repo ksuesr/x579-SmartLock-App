@@ -1,8 +1,6 @@
 package byeonghoon.x579.smartlock.cardapp;
 
 
-import android.content.Context;
-import android.location.*;
 import android.nfc.cardemulation.HostApduService;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,16 +11,17 @@ import java.util.List;
 import java.util.Map;
 
 
-public class CardService extends HostApduService implements LocationListener {
+public class CardService extends HostApduService {
 
     private static final String TAG = "CardService";
 
     private static final String SELECT_APDU_HEADER = "00A40400";
+    private static final String SELECT_APDU_RESPONSE_HEADER = "EA004DAC";
     private static final byte[] SELECT_OK_SW = HexStringToByteArray("9000");
     private static final byte[] UNKNOWN_COMMAND_SW = HexStringToByteArray("0000");
-    private static final String APDU_FOR_TEMP_PERMISSION = "F0000000000000";
 
     private Map<String, Double> input_rows;
+    private String type="01";
 
     public CardService() {
         input_rows = new HashMap<>();
@@ -38,52 +37,69 @@ public class CardService extends HostApduService implements LocationListener {
         boolean is_temporary = false;
         Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
+        if(Arrays.toString(commandApdu).startsWith(SELECT_APDU_RESPONSE_HEADER)) {
+            Log.i(TAG, "Receive response");
+        }
 
-        if(SessionStorage.exists(getApplicationContext(), "permission.time.start")) {
-            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.start", "-1"));
-            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.duration", "-1"))))
+        if(SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
+            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.receive.start", "-1"));
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.receive.duration", "-1"))))
                 deleteTempPermission();
-            else
+            else {
                 is_temporary = true;
+                type = "07";
+            }
+
+        } else if(SessionStorage.exists(getApplicationContext(), "permission.time.send.start")) {
+            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.send.start", "-1"));
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.send.duration", "-1"))))
+                deleteTempPermission();
+            else {
+                is_temporary = true;
+                type = "05";
+            }
+
         }
 
         // If the APDU matches the SELECT AID command for this service,
         // send the loyalty card account number, followed by a SELECT_OK status trailer (0x9000).
         Card target = null;
-        List<Card> card_list = Card.getCardList();
-        for(Card c : card_list) {
-            if(Arrays.equals(target.getApdu(), commandApdu)) {
-                target = c;
-                break;
-            }
-        }
+
 
         if(is_temporary) {
             Log.i(TAG, "Now using temporary permission");
             //Assign temporary ID to temporary card
             target = new Card(stringifiedApdu, "TEMP", -1);
+        } else {
+            List<Card> card_list = Card.getCardList();
+            for(Card c : card_list) {
+                if(Arrays.equals(target.getApdu(), commandApdu)) {
+                    target = c;
+                    break;
+                }
+            }
         }
         if (target != null) {
-            String account;
-            if(target.getCardId() >= 0) {
-                account = AccountStorage.GetAccount(this, target.getCardId());
-            } else {
-                String account_frag_1 = SessionStorage.get(getApplicationContext(), "permission.frag.1", "0000");
-                String account_frag_2 = SessionStorage.get(getApplicationContext(), "permission.frag.2", "0000");
-                String account_frag_3 = SessionStorage.get(getApplicationContext(), "permission.frag.3", "000");
-                String account_frag_4 = SessionStorage.get(getApplicationContext(), "permission.frag.4", "000");
-                account = account_frag_2 + account_frag_4 + account_frag_3 + account_frag_1;
-            }
+            String account = buildNFCResponse(type, target);
+
             byte[] accountBytes = account.getBytes();
             Log.i(TAG, "Sending account number: " + account);
 
-            //TODO: add something useful to server
-            requestLocation();
             input_rows.put("isUnlocked", 0.0);
-            PostToServerTask task = new PostToServerTask(input_rows);
+            PostToServerTask task = new PostToServerTask(this, stringifiedApdu, input_rows);
             task.execute();
 
-            return ConcatArrays(accountBytes, SELECT_OK_SW, HexStringToByteArray(SessionStorage.get(getApplicationContext(), "user.id", "")));
+            //TODO: respond to multiple issues
+            // use case 1: card register
+            //             accountBytes will be 00 + encrypt(user.id + card secret)
+            //             if empty lock, green light/store card secret; if owner's other lock
+            // use case 2: open/close by owner
+            //             accountBytes: 01/02 + encrypt(user.id + card secret) // 01 for open, 02 for close
+            // use case 3: allow/disallow others to open
+            //             accountBytes: 05/06 + (temporary code == encrypt(permission.time.start + 00 + permission.time.duration(max 1 hour) + 15 + card secret))
+            // use case 4: other's access
+            //             accountBytes: 07/08 + temporary code
+            return ConcatArrays(HexStringToByteArray(type), accountBytes, SELECT_OK_SW);
         } else {
             return UNKNOWN_COMMAND_SW;
         }
@@ -91,12 +107,10 @@ public class CardService extends HostApduService implements LocationListener {
     }
 
     public void deleteTempPermission() {
-        SessionStorage.expire(getApplicationContext(), "permission.frag.1");
-        SessionStorage.expire(getApplicationContext(), "permission.frag.2");
-        SessionStorage.expire(getApplicationContext(), "permission.frag.3");
-        SessionStorage.expire(getApplicationContext(), "permission.frag.4");
+        SessionStorage.expire(getApplicationContext(), "permission.temporary");
         SessionStorage.expire(getApplicationContext(), "permission.time.start");
         SessionStorage.expire(getApplicationContext(), "permission.time.duration");
+        SessionStorage.expire(getApplicationContext(), "permission.temp.code");
     }
 
     public static byte[] HexStringToByteArray(String s) throws IllegalArgumentException {
@@ -145,72 +159,25 @@ public class CardService extends HostApduService implements LocationListener {
         return result;
     }
 
-    public void requestLocation() {
-        final String tag_location = TAG + ".Location";
-        LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
-        Criteria criteria = new Criteria();
-        // 정확도
-        criteria.setAccuracy(Criteria.NO_REQUIREMENT);
-        // 전원 소비량
-        criteria.setPowerRequirement(Criteria.NO_REQUIREMENT);
-        // 고도, 높이 값을 얻어 올지를 결정
-        criteria.setAltitudeRequired(false);
-        // provider 기본 정보(방위, 방향)
-        criteria.setBearingRequired(false);
-        // 속도
-        criteria.setSpeedRequired(false);
-        // 위치 정보를 얻어 오는데 들어가는 금전적 비용
-        criteria.setCostAllowed(true);
 
-        String provider = manager.getBestProvider(criteria, true);
-
-        if (manager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-            provider = LocationManager.NETWORK_PROVIDER;
-        } else {
-            provider = LocationManager.GPS_PROVIDER;
+    public String buildNFCResponse(String type, Card target) {
+        String account;
+        switch(type) {
+            case "00":
+            case "01":
+            case "06":
+                account = SessionStorage.get(getApplicationContext(), "user.id", "-1") + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+                break;
+            case "05":
+                account = SessionStorage.get(getApplicationContext(), "permission.temporary.send.code", "0000");
+                break;
+            case "07":
+                account = SessionStorage.get(getApplicationContext(), "permission.temporary.receive.code", "0000");
+                break;
+            default:
+                account = "0000";
         }
-
-        Log.d(tag_location, "provider : " + provider);
-
-        Location location = null;
-
-        try {
-            location = manager.getLastKnownLocation(provider);
-        } catch (SecurityException se) {
-            Log.w(tag_location, se);
-        }
-
-        if (location != null) {
-            input_rows.put("latitude", location.getLatitude());
-            input_rows.put("longitude", location.getLongitude());
-        }
-
-        try {
-            manager.requestLocationUpdates(provider, 0, 0, this);
-        } catch (SecurityException se) {
-            Log.w(tag_location, se);
-        }
+        return account;
     }
 
-
-    @Override
-    public void onLocationChanged(Location location) {
-        input_rows.put("latitude", location.getLatitude());
-        input_rows.put("longitude", location.getLongitude());
-    }
-
-    @Override
-    public void onStatusChanged(String s, int i, Bundle bundle) {
-
-    }
-
-    @Override
-    public void onProviderEnabled(String s) {
-
-    }
-
-    @Override
-    public void onProviderDisabled(String s) {
-
-    }
 }

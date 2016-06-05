@@ -28,40 +28,8 @@
         <EditText
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            android:ems="4"
+            android:ems="16"
             android:id="@+id/permission_01"
-            android:labelFor="@id/permission_01"
-            android:layout_marginTop="162dp"
-            android:layout_marginStart="12dp"
-            android:textSize="16sp"/>
-        <EditText
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:ems="4"
-            android:id="@+id/permission_02"
-            android:labelFor="@id/permission_02"
-            android:layout_marginTop="162dp"
-            android:layout_marginStart="12dp"
-            android:textSize="16sp"/>
-        <EditText
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:ems="3"
-            android:id="@+id/permission_03"
-            android:labelFor="@id/permission_03"
-            android:layout_marginTop="162dp"
-            android:layout_marginStart="12dp"
-            android:textSize="16sp"/>
-        <EditText
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:inputType="number"
-            android:ems="3"
-            android:id="@+id/permission_04"
-            android:labelFor="@id/permission_04"
             android:layout_marginTop="162dp"
             android:layout_marginStart="12dp"
             android:textSize="16sp"/>
@@ -75,7 +43,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="OK"
-            android:id="@+id/button_accept_permission"
+            android:id="@+id/button_accept_receive_permission"
             android:layout_marginTop="230dp"
             android:layout_marginStart="55dp"
             android:onClick="buttonAcceptPermPressed"/>
@@ -84,7 +52,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Back"
-            android:id="@+id/button_cancel_permission"
+            android:id="@+id/button_cancel_receive_permission"
             android:layout_marginTop="230dp"
             android:layout_marginStart="55dp"
             android:onClick="buttonBackPermPressed"/>

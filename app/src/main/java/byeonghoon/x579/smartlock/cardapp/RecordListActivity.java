@@ -16,6 +16,8 @@ public class RecordListActivity extends AppCompatActivity {
     private RecyclerView.Adapter mRecyclerAdapter;
     private RecyclerView.LayoutManager mRecyclerLayout;
 
+    private int card_id;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -29,6 +31,8 @@ public class RecordListActivity extends AppCompatActivity {
 
         mRecyclerAdapter = new ListAdapter();
         mRecyclerView.setAdapter(mRecyclerAdapter);
+
+        card_id = getIntent().getIntExtra("Card_ID", 0);
     }
 
     static class ListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {

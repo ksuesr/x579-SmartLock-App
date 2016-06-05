@@ -30,6 +30,13 @@ public class MainEntryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_entry);
 
+        //DEBUG CODE
+        //Main / SM-G935L
+        //SessionStorage.set(getApplicationContext(), "user.id", "asdfasdf");
+        //Sub(receive permission
+        //SessionStorage.set(getApplicationContexT(), "user.id", "fdsafdsa");
+
+
         //TODO: search for preference storage for list of cards
         // if list doesn't exists, promote to add activity
         if(!SessionStorage.exists(getApplicationContext(), "user.id")) {

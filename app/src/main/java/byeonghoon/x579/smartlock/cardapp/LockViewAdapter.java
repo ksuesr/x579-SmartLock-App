@@ -33,11 +33,13 @@ public class LockViewAdapter extends RecyclerView.Adapter<LockViewAdapter.ViewHo
     public void onBindViewHolder(ViewHolderImpl holder, int position) {
         Card target = null;
         List<Card> list = Card.getCardList();
+        int temp = position;
         for(Card c : list) {
-            if(c.getCardId() == position) {
+            if(temp == 0) {
                 target = c;
                 break;
             }
+            temp--;
         }
         View v = holder.myView;
 
@@ -60,6 +62,9 @@ public class LockViewAdapter extends RecyclerView.Adapter<LockViewAdapter.ViewHo
             @Override public void onClick(View v) {
                 //send permission request to server.
                 //also, generate 14-digit random code
+                Intent sendIntent = new Intent(v.getContext(), SendPermissionActivity.class);
+                sendIntent.putExtra("Card_ID", id);
+                v.getContext().startActivity(sendIntent);
             }
         });
     }
