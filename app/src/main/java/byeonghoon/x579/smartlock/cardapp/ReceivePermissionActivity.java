@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -16,7 +17,7 @@ public class ReceivePermissionActivity extends AppCompatActivity {
         setContentView(R.layout.activity_receive_permission);
     }
 
-    public void buttonAcceptPermPressed() {
+    public void buttonAcceptPermPressed(View v) {
         final TextView text_view = (TextView) findViewById(R.id.receive_perm_direction);
         EditText text_1 = (EditText) findViewById(R.id.permission_01);
         Button button = (Button) findViewById(R.id.button_accept_receive_permission);
@@ -35,7 +36,7 @@ public class ReceivePermissionActivity extends AppCompatActivity {
         //add notification for duration
         new AsyncTask<Void, Void, Void>() {
             @Override protected Void doInBackground(Void... unused) {
-                while(System.currentTimeMillis() > start + 180000) {
+                while(System.currentTimeMillis() <= start + 180000) {
                     if(!SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
                         break;
                     }
@@ -43,12 +44,16 @@ public class ReceivePermissionActivity extends AppCompatActivity {
                 return null;
             }
             @Override protected void onPostExecute(Void _void) {
-                buttonBackPermPressed();
+                afterFinish();
             }
         }.execute();
     }
 
     public void buttonBackPermPressed() {
+        afterFinish();
+    }
+
+    private void afterFinish() {
         SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");
         SessionStorage.expire(getApplicationContext(), "permission.time.receive.duration");
         SessionStorage.expire(getApplicationContext(), "permission.temporary.receive.code");
@@ -57,4 +62,5 @@ public class ReceivePermissionActivity extends AppCompatActivity {
         setResult(RESULT_CANCELED, cancelIntent);
         finish();
     }
+
 }

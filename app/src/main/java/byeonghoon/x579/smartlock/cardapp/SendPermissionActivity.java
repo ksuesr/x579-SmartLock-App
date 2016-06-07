@@ -78,7 +78,7 @@ public class SendPermissionActivity extends AppCompatActivity {
     }
 
 
-    public void buttonAcceptPermPressed() {
+    public void buttonAcceptPermPressed(View v) {
         TextView text_view = (TextView) findViewById(R.id.receive_perm_direction);
         Button button = (Button) findViewById(R.id.button_accept_permission);
         perm_date.setEnabled(false);
@@ -109,7 +109,7 @@ public class SendPermissionActivity extends AppCompatActivity {
         //add notification for duration
         new AsyncTask<Void, Void, Void>() {
             @Override protected Void doInBackground(Void... unused) {
-                while(System.currentTimeMillis() > start + 180000) {
+                while(System.currentTimeMillis() <= start + 180000) {
                     if(!SessionStorage.exists(getApplicationContext(), "permission.time.send.start")) {
                         break;
                     }
@@ -117,12 +117,16 @@ public class SendPermissionActivity extends AppCompatActivity {
                 return null;
             }
             @Override protected void onPostExecute(Void _void) {
-                buttonBackPermPressed();
+                afterFinish();
             }
         }.execute();
     }
 
     public void buttonBackPermPressed() {
+        afterFinish();
+    }
+
+    private void afterFinish() {
         SessionStorage.expire(getApplicationContext(), "permission.time.send.start");
         SessionStorage.expire(getApplicationContext(), "permission.time.send.duration");
         SessionStorage.expire(getApplicationContext(), "permission.temporary.send.configure");

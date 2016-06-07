@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
 
@@ -16,7 +17,7 @@ public class RegisterLockActivity extends AppCompatActivity {
         setContentView(R.layout.activity_register_lock);
     }
 
-    public void buttonStartRegPressed() {
+    public void buttonStartRegPressed(View v) {
         EditText edit = (EditText) findViewById(R.id.lock_title);
         TextView text_view = (TextView) findViewById(R.id.register_direction);
         edit.setEnabled(false);
@@ -30,7 +31,7 @@ public class RegisterLockActivity extends AppCompatActivity {
             boolean isSucceed = false;
 
             @Override protected Void doInBackground(Void... unused) {
-                while(System.currentTimeMillis() > start + 180000) {
+                while(System.currentTimeMillis() <= start + 180000) {
                     if(SessionStorage.exists(getApplicationContext(), "register.action.complete")) {
                         if("0".equals(SessionStorage.get(getApplicationContext(), "register.action.complete", "1"))) {
                             isSucceed = true;
@@ -44,23 +45,27 @@ public class RegisterLockActivity extends AppCompatActivity {
                 if(isSucceed)
                     afterSuccess();
                 else
-                    buttonCancelRegPressed();
+                    afterFailed();
             }
         }.execute();
 
     }
 
-    public void buttonCancelRegPressed() {
-        expireRegister();
-        Intent cancelIntent = new Intent();
-        setResult(RESULT_CANCELED, cancelIntent);
-        finish();
+    public void buttonCancelRegPressed(View v) {
+        afterFailed();
     }
 
     private void afterSuccess() {
         expireRegister();
         Intent okIntent = new Intent();
         setResult(RESULT_OK, okIntent);
+        finish();
+    }
+
+    private void afterFailed() {
+        expireRegister();
+        Intent cancelIntent = new Intent();
+        setResult(RESULT_CANCELED, cancelIntent);
         finish();
     }
 

@@ -34,8 +34,8 @@ public class MainEntryActivity extends AppCompatActivity {
         //DEBUG CODE
         //Main / SM-G935L
         //SessionStorage.set(getApplicationContext(), "user.id", "asdfasdf");
-        //Sub(receive permission
-        //SessionStorage.set(getApplicationContexT(), "user.id", "fdsafdsa");
+        //Sub(receive permission)
+        SessionStorage.set(getApplicationContext(), "user.id", "fdsafdsa");
 
 
         //TODO: search for preference storage for list of cards
