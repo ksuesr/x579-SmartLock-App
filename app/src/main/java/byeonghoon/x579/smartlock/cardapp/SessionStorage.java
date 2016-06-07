@@ -42,7 +42,7 @@ public class SessionStorage {
     public static void expire(Context c, String key) {
         synchronized (lock) {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(c);
-            prefs.edit().remove(key).apply();
+            prefs.edit().remove(key).commit();
         }
     }
 }

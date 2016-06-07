@@ -60,7 +60,7 @@ public class RecordListActivity extends AppCompatActivity {
         //Crawl from IoTMakers server
         GiGaIotOAuthResponse iotAuthResponse = new GigaIotOAuth(PrivateSettings.iotAuth_clientID, PrivateSettings.iotAuth_clientSecret).loginWithPassword(PrivateSettings.loginID, PrivateSettings.loginPassword);
         TagStrmApi api = new TagStrmApi(iotAuthResponse.getAccessToken());
-        TagStrmApiResponse apiResponse = api.getTagStrmLog(PrivateSettings.iotAuth_clientID, PrivateSettings.iotDevice_deviceID, "" + System.currentTimeMillis(), "");
+        TagStrmApiResponse apiResponse = api.getTagStrmLog(PrivateSettings.iotAuth_clientID, PrivateSettings.iotDevice_deviceID, "" + System.currentTimeMillis(), "50");
         ArrayList<Log> logs = apiResponse.getLogs();
 
         //narrow down logs
@@ -108,6 +108,7 @@ public class RecordListActivity extends AppCompatActivity {
             if(item.isTemporary) {
                 title = "[Temporary] " + item.title;
                 title_view.setTextColor(view.getResources().getColor(R.color.colorAccent));
+                desc.setTextColor(view.getResources().getColor(R.color.colorAccent));
             }
             title_view.setText(title);
             //SimpleDateFormat format = new SimpleDateFormat("MM/dd/yy hh:mm");
