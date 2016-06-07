@@ -7,6 +7,9 @@
         android:id="@+id/main_menu_receive_permission"
         android:title="@string/main_menu_receive_perm" />
     <item
+        android:id="@+id/main_menu_cancel_permission"
+        android:title="@string/main_menu_cancel_perm" />
+    <item
         android:id="@+id/main_menu_about"
         android:title="@string/main_menu_about" />
 </menu>

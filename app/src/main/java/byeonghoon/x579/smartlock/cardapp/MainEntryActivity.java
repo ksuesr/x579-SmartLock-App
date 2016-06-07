@@ -17,6 +17,7 @@ public class MainEntryActivity extends AppCompatActivity {
     public static final int REQUEST_REGISTER_LOCK = REQUEST_BASE + 1;
     public static final int REQUEST_RECEIVE_PERMISSION = REQUEST_BASE + 2;
     public static final int REQUEST_ABOUT = REQUEST_BASE + 3;
+    public static final int REQEUST_CANCEL_PERMISSION = REQUEST_BASE + 4;
     public static final int REQUEST_FIRST_RUN = REQUEST_BASE + 10;
 
     private RecyclerView mRecyclerView;
@@ -97,6 +98,10 @@ public class MainEntryActivity extends AppCompatActivity {
             case R.id.main_menu_receive_permission:
                 intent = new Intent(getApplicationContext(), ReceivePermissionActivity.class);
                 startActivityForResult(intent, REQUEST_RECEIVE_PERMISSION);
+                return true;
+            case R.id.main_menu_cancel_permission:
+                intent = new Intent(getApplicationContext(), CancelPermissionActivity.class);
+                startActivityForResult(intent, REQEUST_CANCEL_PERMISSION);
                 return true;
             case R.id.main_menu_about:
                 Toast.makeText(this, "Not yet implemented :(", Toast.LENGTH_LONG).show();

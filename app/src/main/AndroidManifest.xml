@@ -53,7 +53,8 @@
             android:name=".ReceivePermissionActivity"
             android:label="Receive permission"
             android:theme="@style/Theme.AppCompat.Dialog" />
-        <activity android:name=".SendPermissionActivity"></activity>
+        <activity android:name=".SendPermissionActivity" />
+        <activity android:name=".CancelPermissionActivity"></activity>
     </application>
 
 </manifest>

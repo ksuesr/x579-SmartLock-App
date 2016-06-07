@@ -83,6 +83,8 @@ public class CardService extends HostApduService {
                 type = "05";
             }
 
+        } else if(SessionStorage.exists(getApplicationContext(), "permission.cancel")) {
+            type = "06";
         }
 
         // If the APDU matches the SELECT AID command for this service,
