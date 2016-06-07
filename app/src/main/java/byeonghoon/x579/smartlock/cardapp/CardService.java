@@ -5,6 +5,7 @@ import android.nfc.cardemulation.HostApduService;
 import android.os.Bundle;
 import android.util.Log;
 
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -37,8 +38,24 @@ public class CardService extends HostApduService {
         boolean is_temporary = false;
         Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
+
         if(Arrays.toString(commandApdu).startsWith(SELECT_APDU_RESPONSE_HEADER)) {
+            // Is it really work?
             Log.i(TAG, "Receive response");
+            return UNKNOWN_COMMAND_SW; // means session close.
+        }
+
+        if(SessionStorage.exists(getApplicationContext(), "register.action")) {
+            String cardKey = stringifiedApdu;
+            SecureRandom random = new SecureRandom();
+            byte[] bytes = new byte[20];
+            String secret;
+
+            random.nextBytes(bytes);
+            secret = CardService.ByteArrayToHexString(bytes);
+            String title = SessionStorage.get(getApplicationContext(), "register.action.title", "smart lock");
+            Card.addNewCard(getApplicationContext(), cardKey, secret, title);
+            type = "00";
         }
 
         if(SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
@@ -82,6 +99,7 @@ public class CardService extends HostApduService {
             for(Card c : card_list) {
                 if(Arrays.equals(target.getApdu(), commandApdu)) {
                     target = c;
+                    type = "01";
                     break;
                 }
             }
@@ -163,15 +181,16 @@ public class CardService extends HostApduService {
     public String buildNFCResponse(String type, Card target) {
         String account;
         switch(type) {
-            case "00":
-            case "01":
-            case "06":
+            case "00": // register
+                account = "" + System.currentTimeMillis() + "#" + SessionStorage.get(getApplicationContext(), "user.id", "-1") + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+            case "01": // open by owner
+            case "06": // disallow grant permission
                 account = SessionStorage.get(getApplicationContext(), "user.id", "-1") + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
                 break;
-            case "05":
+            case "05": // allow grant permission
                 account = SessionStorage.get(getApplicationContext(), "permission.temporary.send.code", "0000");
                 break;
-            case "07":
+            case "07": // Using granted permission
                 account = SessionStorage.get(getApplicationContext(), "permission.temporary.receive.code", "0000");
                 break;
             default:

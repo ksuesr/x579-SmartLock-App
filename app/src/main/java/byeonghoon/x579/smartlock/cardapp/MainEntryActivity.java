@@ -99,8 +99,9 @@ public class MainEntryActivity extends AppCompatActivity {
                 startActivityForResult(intent, REQUEST_RECEIVE_PERMISSION);
                 return true;
             case R.id.main_menu_about:
-                intent = new Intent(getApplicationContext(), AboutActivity.class);
-                startActivityForResult(intent, REQUEST_ABOUT);
+                Toast.makeText(this, "Not yet implemented :(", Toast.LENGTH_LONG).show();
+                //intent = new Intent(getApplicationContext(), AboutActivity.class);
+                //startActivityForResult(intent, REQUEST_ABOUT);
                 return true;
             default:
         }

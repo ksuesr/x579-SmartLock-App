@@ -20,7 +20,7 @@ public class Card {
     public String getTitle() { return desc; }
 
     public Card(String cardKey, String desc, int id) {
-        matched_apdu = CardService.BuildSelectApdu(cardKey);
+        matched_apdu = CardService.HexStringToByteArray(cardKey);
         this.desc = desc;
         this.card_id = id;
     }

@@ -1,5 +1,7 @@
 package byeonghoon.x579.smartlock.cardapp;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -7,8 +9,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 
 public class RecordListActivity extends AppCompatActivity {
 
@@ -33,6 +38,8 @@ public class RecordListActivity extends AppCompatActivity {
         mRecyclerView.setAdapter(mRecyclerAdapter);
 
         card_id = getIntent().getIntExtra("Card_ID", 0);
+
+        //Crawl from IoTMakers server
     }
 
     static class ListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
@@ -53,8 +60,31 @@ public class RecordListActivity extends AppCompatActivity {
         }
 
         @Override public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            ListItem item = item_lists.get(position);
+            final ListItem item = item_lists.get(position);
             View view = holder.itemView;
+            String title = item.title;
+
+            TextView title_view = (TextView) view.findViewById(R.id.record_list_title);
+            TextView time_view = (TextView) view.findViewById(R.id.record_list_item_timestamp);
+            TextView location_button = (TextView) view.findViewById(R.id.record_list_item_location);
+
+            if(item.desc.equalsIgnoreCase("temporary")) {
+                title = "[Temporary] " + item.title;
+                title_view.setTextColor(view.getResources().getColor(R.color.colorAccent));
+            }
+            title_view.setText(title);
+            SimpleDateFormat format = new SimpleDateFormat("MM/dd/yy hh:mm");
+            time_view.setText("Time: " + format.format(new Date(item.timestamp)));
+
+            location_button.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    String url = "https://maps.google.com/maps?q=loc:" + item.latitude + "," + item.longitude + " (" + item.title + ")";
+                    Intent mapsIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+
+                    v.getContext().startActivity(mapsIntent);
+                }
+            });
         }
 
         @Override public int getItemCount() { return item_lists.size(); }
@@ -65,6 +95,6 @@ public class RecordListActivity extends AppCompatActivity {
         Long timestamp;
         String desc;
         double latitude;
-        double longnitude;
+        double longitude;
     }
 }
