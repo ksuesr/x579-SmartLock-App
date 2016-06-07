@@ -104,7 +104,7 @@ public class CardService extends HostApduService {
             byte[] accountBytes = account.getBytes();
             Log.i(TAG, "Sending account number: " + account);
 
-            input_rows.put("isUnlocked", 0.0);
+            input_rows.put("inputType", Double.parseDouble(type));
             PostToServerTask task = new PostToServerTask(this, stringifiedApdu, input_rows);
             task.execute();
 
@@ -196,11 +196,11 @@ public class CardService extends HostApduService {
 
     private void processResponse(byte in_response_to, byte response_code) {
         switch(in_response_to) {
-            case 00:
+            case 0:
                 if(response_code == 0) {
                     String cardKey = SessionStorage.get(getApplicationContext(), "register.cardkey", "F000000000");
                     SecureRandom random = new SecureRandom();
-                    byte[] bytes = new byte[20];
+                    byte[] bytes = new byte[14];
                     String secret;
 
                     random.nextBytes(bytes);
@@ -217,12 +217,12 @@ public class CardService extends HostApduService {
                     SessionStorage.set(getApplicationContext(), "register.action.complete", "1");
                 }
                 break;
-            case 01:
+            case 1:
                 if(response_code != 0) {
                     Toast.makeText(getApplicationContext(), "Incorrect lock", Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case 05:
+            case 5:
                 if(response_code == 0) {
                     Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
                     SessionStorage.expire(getApplicationContext(), "permission.time.send.start");
@@ -232,7 +232,7 @@ public class CardService extends HostApduService {
                     Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case 06:
+            case 6:
                 if(response_code == 0) {
                     Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
                 } else if(response_code == 1) {
@@ -243,7 +243,7 @@ public class CardService extends HostApduService {
                     Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case 07:
+            case 7:
                 if(response_code == 0) {
                     Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
                     SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");

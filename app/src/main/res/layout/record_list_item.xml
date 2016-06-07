@@ -20,7 +20,8 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:layout_below="@id/layout_recordlist_title">
+        android:layout_below="@id/layout_recordlist_title"
+        android:id="@+id/layout_recordlist_content_01">
 
         <TextView
             android:layout_width="wrap_content"
@@ -37,6 +38,19 @@
             android:textSize="16sp"
             android:text="Time: "/>
 
+    </LinearLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="8dp"
+        android:layout_below="@id/layout_recordlist_content_01">
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:id="@+id/record_list_item_desc"
+            android:textSize="16sp"
+            android:text="Description: "/>
     </LinearLayout>
 
 </RelativeLayout>
