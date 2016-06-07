@@ -32,7 +32,9 @@ public class RegisterLockActivity extends AppCompatActivity {
             @Override protected Void doInBackground(Void... unused) {
                 while(System.currentTimeMillis() > start + 180000) {
                     if(SessionStorage.exists(getApplicationContext(), "register.action.complete")) {
-                        isSucceed = true;
+                        if("0".equals(SessionStorage.get(getApplicationContext(), "register.action.complete", "1"))) {
+                            isSucceed = true;
+                        }
                         break;
                     }
                 }

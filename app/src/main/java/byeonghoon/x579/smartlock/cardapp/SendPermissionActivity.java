@@ -98,7 +98,7 @@ public class SendPermissionActivity extends AppCompatActivity {
 
         text_view.setText("Tag lock within 3 minutes to enable");
         //Encrypt!
-        String tempCode = String.valueOf(myCalendar.getTimeInMillis()) + "00" + String.valueOf(duration * 1000) + "FF" + AccountStorage.GetAccount(getApplicationContext(), card_id);
+        String tempCode = String.valueOf(myCalendar.getTimeInMillis()) + "#" + String.valueOf(duration * 1000) + "#" + AccountStorage.GetAccount(getApplicationContext(), card_id);
         SessionStorage.set(getApplicationContext(), "permission.time.send.start", String.valueOf(start));
         SessionStorage.set(getApplicationContext(), "permission.time.send.duration", "180000");
         SessionStorage.set(getApplicationContext(), "permission.temporary.send.configure", "1");

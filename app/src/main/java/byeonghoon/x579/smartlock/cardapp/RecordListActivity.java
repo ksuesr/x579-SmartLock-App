@@ -14,11 +14,14 @@ import android.widget.TextView;
 import com.kt.gigaiot_sdk.GigaIotOAuth;
 import com.kt.gigaiot_sdk.TagStrmApi;
 import com.kt.gigaiot_sdk.data.GiGaIotOAuthResponse;
+import com.kt.gigaiot_sdk.data.TagStrm;
 import com.kt.gigaiot_sdk.data.TagStrmApiResponse;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+
+import byeonghoon.x579.smartlock.cardapp.private_setting.PrivateSettings;
 
 public class RecordListActivity extends AppCompatActivity {
 
@@ -45,10 +48,11 @@ public class RecordListActivity extends AppCompatActivity {
         card_id = getIntent().getIntExtra("Card_ID", 0);
 
         //Crawl from IoTMakers server
-        GiGaIotOAuthResponse iotAuthResponse = new GigaIotOAuth("clientid", "clientsecret").login();
+        GiGaIotOAuthResponse iotAuthResponse = new GigaIotOAuth(PrivateSettings.iotAuth_clientID, PrivateSettings.iotAuth_clientSecret).loginWithPassword(PrivateSettings.loginID, PrivateSettings.loginPassword);
         TagStrmApi api = new TagStrmApi(iotAuthResponse.getAccessToken());
         TagStrmApiResponse apiResponse = api.getTagStrmLog("svcTgtSeq", "spotDevSeq");
-        
+        TagStrm stream = apiResponse.getTagStrms().get(0);
+
 
     }
 

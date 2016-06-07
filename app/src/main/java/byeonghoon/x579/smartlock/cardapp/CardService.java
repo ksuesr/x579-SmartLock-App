@@ -4,6 +4,7 @@ package byeonghoon.x579.smartlock.cardapp;
 import android.nfc.cardemulation.HostApduService;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.Toast;
 
 import java.security.SecureRandom;
 import java.util.Arrays;
@@ -17,7 +18,7 @@ public class CardService extends HostApduService {
     private static final String TAG = "CardService";
 
     private static final String SELECT_APDU_HEADER = "00A40400";
-    private static final String SELECT_APDU_RESPONSE_HEADER = "EA004DAC";
+    private static final String APDU_RESPONSE_HEADER = "EA004DAC";
     private static final byte[] SELECT_OK_SW = HexStringToByteArray("9000");
     private static final byte[] UNKNOWN_COMMAND_SW = HexStringToByteArray("0000");
 
@@ -39,26 +40,16 @@ public class CardService extends HostApduService {
         Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
 
-        if(Arrays.toString(commandApdu).startsWith(SELECT_APDU_RESPONSE_HEADER)) {
-            // Is it really work?
+        if(Arrays.toString(commandApdu).startsWith(APDU_RESPONSE_HEADER)) {
             Log.i(TAG, "Receive response");
+            processResponse(commandApdu[4], commandApdu[5]);
             return UNKNOWN_COMMAND_SW; // means session close.
         }
 
         if(SessionStorage.exists(getApplicationContext(), "register.action")) {
-            String cardKey = stringifiedApdu;
-            SecureRandom random = new SecureRandom();
-            byte[] bytes = new byte[20];
-            String secret;
-
-            random.nextBytes(bytes);
-            secret = CardService.ByteArrayToHexString(bytes);
-            String title = SessionStorage.get(getApplicationContext(), "register.action.title", "smart lock");
-            Card.addNewCard(getApplicationContext(), cardKey, secret, title);
+            SessionStorage.set(getApplicationContext(), "register.cardkey", stringifiedApdu);
             type = "00";
-        }
-
-        if(SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
+        } else if(SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
             long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.receive.start", "-1"));
             if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.receive.duration", "-1")))) {
                 SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");
@@ -85,6 +76,8 @@ public class CardService extends HostApduService {
 
         } else if(SessionStorage.exists(getApplicationContext(), "permission.cancel")) {
             type = "06";
+        } else {
+            type = "01";
         }
 
         // If the APDU matches the SELECT AID command for this service,
@@ -101,7 +94,6 @@ public class CardService extends HostApduService {
             for(Card c : card_list) {
                 if(Arrays.equals(target.getApdu(), commandApdu)) {
                     target = c;
-                    type = "01";
                     break;
                 }
             }
@@ -116,16 +108,6 @@ public class CardService extends HostApduService {
             PostToServerTask task = new PostToServerTask(this, stringifiedApdu, input_rows);
             task.execute();
 
-            //TODO: respond to multiple issues
-            // use case 1: card register
-            //             accountBytes will be 00 + encrypt(user.id + card secret)
-            //             if empty lock, green light/store card secret; if owner's other lock
-            // use case 2: open/close by owner
-            //             accountBytes: 01/02 + encrypt(user.id + card secret) // 01 for open, 02 for close
-            // use case 3: allow/disallow others to open
-            //             accountBytes: 05/06 + (temporary code == encrypt(permission.time.start + 00 + permission.time.duration(max 1 hour) + 15 + card secret))
-            // use case 4: other's access
-            //             accountBytes: 07/08 + temporary code
             return ConcatArrays(HexStringToByteArray(type), accountBytes, SELECT_OK_SW);
         } else {
             return UNKNOWN_COMMAND_SW;
@@ -181,13 +163,23 @@ public class CardService extends HostApduService {
 
 
     public String buildNFCResponse(String type, Card target) {
+        // use case 1: card register
+        //             accountBytes will be 00 + encrypt(user.id + card secret)
+        //             if empty lock, green light/store card secret; if owner's other lock
+        // use case 2: open/close by owner
+        //             accountBytes: 01/02 + encrypt(user.id + card secret) // 01 for open, 02 for close
+        // use case 3: allow/disallow others to open
+        //             accountBytes: 05/06 + (temporary code == encrypt(permission.time.start + 00 + permission.time.duration(max 1 hour) + 15 + card secret))
+        // use case 4: other's access
+        //             accountBytes: 07/08 + temporary code
         String account;
         switch(type) {
             case "00": // register
-                account = "" + System.currentTimeMillis() + "#" + SessionStorage.get(getApplicationContext(), "user.id", "-1") + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+                account = "" + System.currentTimeMillis() + "#" + SessionStorage.get(getApplicationContext(), "user.id", "-1") + "#" + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+                break;
             case "01": // open by owner
             case "06": // disallow grant permission
-                account = SessionStorage.get(getApplicationContext(), "user.id", "-1") + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+                account = SessionStorage.get(getApplicationContext(), "user.id", "-1") + "#" + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
                 break;
             case "05": // allow grant permission
                 account = SessionStorage.get(getApplicationContext(), "permission.temporary.send.code", "0000");
@@ -201,4 +193,68 @@ public class CardService extends HostApduService {
         return account;
     }
 
+
+    private void processResponse(byte in_response_to, byte response_code) {
+        switch(in_response_to) {
+            case 00:
+                if(response_code == 0) {
+                    String cardKey = SessionStorage.get(getApplicationContext(), "register.cardkey", "F000000000");
+                    SecureRandom random = new SecureRandom();
+                    byte[] bytes = new byte[20];
+                    String secret;
+
+                    random.nextBytes(bytes);
+                    secret = CardService.ByteArrayToHexString(bytes);
+                    String title = SessionStorage.get(getApplicationContext(), "register.action.title", "smart lock");
+                    Card.addNewCard(getApplicationContext(), cardKey, secret, title);
+                    Toast.makeText(getApplicationContext(), "Success!", Toast.LENGTH_SHORT).show();
+                    SessionStorage.set(getApplicationContext(), "register.action.complete", "0");
+                } else if(response_code == 1) {
+                    Toast.makeText(getApplicationContext(), "It's already yours!", Toast.LENGTH_LONG).show();
+                    SessionStorage.set(getApplicationContext(), "register.action.complete", "1");
+                } else if(response_code == 2) {
+                    Toast.makeText(getApplicationContext(), "It's not yours!", Toast.LENGTH_LONG).show();
+                    SessionStorage.set(getApplicationContext(), "register.action.complete", "1");
+                }
+                break;
+            case 01:
+                if(response_code != 0) {
+                    Toast.makeText(getApplicationContext(), "Incorrect lock", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case 05:
+                if(response_code == 0) {
+                    Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
+                    SessionStorage.expire(getApplicationContext(), "permission.time.send.start");
+                } else if(response_code == 1) {
+                    Toast.makeText(getApplicationContext(), "It's not yours!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case 06:
+                if(response_code == 0) {
+                    Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
+                } else if(response_code == 1) {
+                    Toast.makeText(getApplicationContext(), "It's not yours!", Toast.LENGTH_SHORT).show();
+                } else if(response_code == 2) {
+                    Toast.makeText(getApplicationContext(), "Already canceled one!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            case 07:
+                if(response_code == 0) {
+                    Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
+                    SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");
+                } else if(response_code == 1) {
+                    Toast.makeText(getApplicationContext(), "It's not correct one!", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            default:
+                Toast.makeText(getApplicationContext(), "Unknown response :(", Toast.LENGTH_SHORT).show();
+        }
+    }
 }

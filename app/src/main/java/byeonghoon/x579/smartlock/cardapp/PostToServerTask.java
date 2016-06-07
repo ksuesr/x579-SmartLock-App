@@ -20,6 +20,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import byeonghoon.x579.smartlock.cardapp.private_setting.PrivateSettings;
+
 /**
  * Created by Byeonghoon on 26-May-16.
  */
@@ -101,11 +103,11 @@ public class PostToServerTask extends AsyncTask<Void, Void, Void> implements Loc
         info.setPort(10020);
         //TODO: Modify Gateway connection ID, device ID, and password
         // 디바이스상세정보-> Gateway 연결 ID를 입력한다.
-        info.setExtrSysId("OPEN_TCP_001PTL001_1000001796");
+        info.setExtrSysId(PrivateSettings.iotDevice_gatewayID);
         // 디바이스상세정보-> 디바이스 아이디를 입력한다.
-        info.setDeviceId("ksuesrD1458805496549");
+        info.setDeviceId(PrivateSettings.iotDevice_deviceID);
         // 디바이스상세정보-> 디바이스 패스워드를 입력한다.
-        info.setPassword("35vhiwlh7");
+        info.setPassword(PrivateSettings.iotDevice_devicePassword);
         // IoTMakers 연동 TCP Connector 생성
         IMTcpConnector connector = new IMTcpConnector();
         try {
