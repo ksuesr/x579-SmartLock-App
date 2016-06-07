@@ -1,13 +1,17 @@
 package byeonghoon.x579.smartlock.cardapp;
 
 
+import android.content.Context;
 import android.nfc.cardemulation.HostApduService;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
 import java.security.SecureRandom;
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -27,11 +31,18 @@ public class CardService extends HostApduService {
 
     public CardService() {
         input_rows = new HashMap<>();
+
+    }
+
+    @Override public void onCreate() {
+        SessionStorage.expire(getApplicationContext(), "waiting.response");
         Card.globalInit(getApplicationContext());
     }
 
     @Override
-    public void onDeactivated(int reason) {}
+    public void onDeactivated(int reason) {
+        SessionStorage.expire(getApplicationContext(), "waiting.response");
+    }
 
     @Override
     public byte[] processCommandApdu(byte[] commandApdu, Bundle extras) {
@@ -39,45 +50,58 @@ public class CardService extends HostApduService {
         boolean is_temporary = false;
         Log.i(TAG, "Received APDU: " + stringifiedApdu);
         input_rows = new HashMap<>();
+        Context ctx = getApplicationContext();
 
-        if(Arrays.toString(commandApdu).startsWith(APDU_RESPONSE_HEADER)) {
-            Log.i(TAG, "Receive response");
-            processResponse(commandApdu[4], commandApdu[5]);
-            return UNKNOWN_COMMAND_SW; // means session close.
+        if(SessionStorage.exists(ctx, "waiting.response")) {
+            Log.i(TAG, "Waiting response");
+            if (Arrays.toString(commandApdu).startsWith(APDU_RESPONSE_HEADER)) {
+                Log.i(TAG, "Receive response");
+                processResponse(commandApdu[4], commandApdu[5]);
+                SessionStorage.expire(ctx, "waiting.response");
+                return UNKNOWN_COMMAND_SW; // means session close.
+            } else {
+                return UNKNOWN_COMMAND_SW;
+            }
         }
 
-        if(SessionStorage.exists(getApplicationContext(), "register.action")) {
-            SessionStorage.set(getApplicationContext(), "register.cardkey", stringifiedApdu);
+        if(SessionStorage.exists(ctx, "register.action")) {
+            SessionStorage.set(ctx, "register.cardkey", stringifiedApdu);
+            is_temporary = true;
             type = "00";
-        } else if(SessionStorage.exists(getApplicationContext(), "permission.time.receive.start")) {
-            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.receive.start", "-1"));
-            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.receive.duration", "-1")))) {
-                SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");
-                SessionStorage.expire(getApplicationContext(), "permission.time.receive.duration");
-                SessionStorage.expire(getApplicationContext(), "permission.temporary.receive.code");
+            Log.i(TAG, "Type: register");
+        } else if(SessionStorage.exists(ctx, "permission.time.receive.start")) {
+            long start = Long.parseLong(SessionStorage.get(ctx,"permission.time.receive.start", "-1"));
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(ctx, "permission.time.receive.duration", "-1")))) {
+                SessionStorage.expire(ctx, "permission.time.receive.start");
+                SessionStorage.expire(ctx, "permission.time.receive.duration");
+                SessionStorage.expire(ctx, "permission.temporary.receive.code");
             }
             else {
                 is_temporary = true;
                 type = "07";
+                Log.i(TAG, "Type: receive");
             }
 
-        } else if(SessionStorage.exists(getApplicationContext(), "permission.time.send.start")) {
-            long start = Long.parseLong(SessionStorage.get(getApplicationContext(),"permission.time.send.start", "-1"));
-            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(getApplicationContext(), "permission.time.send.duration", "-1")))) {
-                SessionStorage.expire(getApplicationContext(), "permission.time.send.start");
-                SessionStorage.expire(getApplicationContext(), "permission.time.send.duration");
-                SessionStorage.expire(getApplicationContext(), "permission.temporary.send.configure");
-                SessionStorage.expire(getApplicationContext(), "permission.temporary.send.code");
+        } else if(SessionStorage.exists(ctx, "permission.time.send.start")) {
+            long start = Long.parseLong(SessionStorage.get(ctx,"permission.time.send.start", "-1"));
+            if(System.currentTimeMillis() > (start + Long.parseLong(SessionStorage.get(ctx, "permission.time.send.duration", "-1")))) {
+                SessionStorage.expire(ctx, "permission.time.send.start");
+                SessionStorage.expire(ctx, "permission.time.send.duration");
+                SessionStorage.expire(ctx, "permission.temporary.send.configure");
+                SessionStorage.expire(ctx, "permission.temporary.send.code");
             }
             else {
                 is_temporary = true;
                 type = "05";
+                Log.i(TAG, "Type: allow");
             }
 
-        } else if(SessionStorage.exists(getApplicationContext(), "permission.cancel")) {
+        } else if(SessionStorage.exists(ctx, "permission.cancel")) {
             type = "06";
+            Log.i(TAG, "Type: disallow");
         } else {
             type = "01";
+            Log.i(TAG, "Type: open");
         }
 
         // If the APDU matches the SELECT AID command for this service,
@@ -102,14 +126,16 @@ public class CardService extends HostApduService {
             String account = buildNFCResponse(type, target);
 
             byte[] accountBytes = account.getBytes();
-            Log.i(TAG, "Sending account number: " + account);
 
             input_rows.put("inputType", Double.parseDouble(type));
             PostToServerTask task = new PostToServerTask(this, stringifiedApdu, input_rows);
-            task.execute();
+            task.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
+            Log.i(TAG, "Sending account number: " + account);
+            SessionStorage.set(ctx, "waiting.response", "1");
             return ConcatArrays(HexStringToByteArray(type), accountBytes, SELECT_OK_SW);
         } else {
+            Log.i(TAG, "Unknown command");
             return UNKNOWN_COMMAND_SW;
         }
 
@@ -173,19 +199,26 @@ public class CardService extends HostApduService {
         // use case 4: other's access
         //             accountBytes: 07/08 + temporary code
         String account;
+        Context ctx = getApplicationContext();
         switch(type) {
             case "00": // register
-                account = "" + System.currentTimeMillis() + "#" + SessionStorage.get(getApplicationContext(), "user.id", "-1") + "#" + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+                SecureRandom random = new SecureRandom();
+                byte[] bytes = new byte[14];
+                String secret;
+                random.nextBytes(bytes);
+                secret = CardService.ByteArrayToHexString(bytes);
+                SessionStorage.set(ctx, "temp.secret", secret);
+                account = "" + new SimpleDateFormat("yyyyMMddHHmm").format(new Date(System.currentTimeMillis())) + "#" + SessionStorage.get(ctx, "user.id", "-1") + "#" + secret;
                 break;
             case "01": // open by owner
             case "06": // disallow grant permission
-                account = SessionStorage.get(getApplicationContext(), "user.id", "-1") + "#" + AccountStorage.GetAccount(getApplicationContext(), target.getCardId());
+                account = SessionStorage.get(ctx, "user.id", "-1") + "#" + AccountStorage.GetAccount(ctx, target.getCardId());
                 break;
             case "05": // allow grant permission
-                account = SessionStorage.get(getApplicationContext(), "permission.temporary.send.code", "0000");
+                account = SessionStorage.get(ctx, "permission.temporary.send.code", "0000");
                 break;
             case "07": // Using granted permission
-                account = SessionStorage.get(getApplicationContext(), "permission.temporary.receive.code", "0000");
+                account = SessionStorage.get(ctx, "permission.temporary.receive.code", "0000");
                 break;
             default:
                 account = "0000";
@@ -195,66 +228,64 @@ public class CardService extends HostApduService {
 
 
     private void processResponse(byte in_response_to, byte response_code) {
+        Context ctx = getApplicationContext();
         switch(in_response_to) {
             case 0:
                 if(response_code == 0) {
-                    String cardKey = SessionStorage.get(getApplicationContext(), "register.cardkey", "F000000000");
-                    SecureRandom random = new SecureRandom();
-                    byte[] bytes = new byte[14];
-                    String secret;
-
-                    random.nextBytes(bytes);
-                    secret = CardService.ByteArrayToHexString(bytes);
-                    String title = SessionStorage.get(getApplicationContext(), "register.action.title", "smart lock");
-                    Card.addNewCard(getApplicationContext(), cardKey, secret, title);
-                    Toast.makeText(getApplicationContext(), "Success!", Toast.LENGTH_SHORT).show();
-                    SessionStorage.set(getApplicationContext(), "register.action.complete", "0");
+                    String cardKey = SessionStorage.get(ctx, "register.cardkey", "F000000000");
+                    String secret = SessionStorage.get(ctx, "temp.secret", "00000000");
+                    String title = SessionStorage.get(ctx, "register.action.title", "smart lock");
+                    Card.addNewCard(ctx, cardKey, secret, title);
+                    Toast.makeText(ctx, "Success!", Toast.LENGTH_SHORT).show();
+                    SessionStorage.set(ctx, "register.action.complete", "0");
+                    SessionStorage.expire(ctx, "temp.secret");
                 } else if(response_code == 1) {
-                    Toast.makeText(getApplicationContext(), "It's already yours!", Toast.LENGTH_LONG).show();
-                    SessionStorage.set(getApplicationContext(), "register.action.complete", "1");
+                    Toast.makeText(ctx, "It's already yours!", Toast.LENGTH_LONG).show();
+                    SessionStorage.set(ctx, "register.action.complete", "1");
                 } else if(response_code == 2) {
-                    Toast.makeText(getApplicationContext(), "It's not yours!", Toast.LENGTH_LONG).show();
-                    SessionStorage.set(getApplicationContext(), "register.action.complete", "1");
+                    Toast.makeText(ctx, "It's not yours!", Toast.LENGTH_LONG).show();
+                    SessionStorage.set(ctx, "register.action.complete", "1");
                 }
+
                 break;
             case 1:
                 if(response_code != 0) {
-                    Toast.makeText(getApplicationContext(), "Incorrect lock", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Incorrect lock", Toast.LENGTH_SHORT).show();
                 }
                 break;
             case 5:
                 if(response_code == 0) {
-                    Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
-                    SessionStorage.expire(getApplicationContext(), "permission.time.send.start");
+                    Toast.makeText(ctx, "Succeed!", Toast.LENGTH_SHORT).show();
+                    SessionStorage.expire(ctx, "permission.time.send.start");
                 } else if(response_code == 1) {
-                    Toast.makeText(getApplicationContext(), "It's not yours!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "It's not yours!", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Try again", Toast.LENGTH_SHORT).show();
                 }
                 break;
             case 6:
                 if(response_code == 0) {
-                    Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Succeed!", Toast.LENGTH_SHORT).show();
                 } else if(response_code == 1) {
-                    Toast.makeText(getApplicationContext(), "It's not yours!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "It's not yours!", Toast.LENGTH_SHORT).show();
                 } else if(response_code == 2) {
-                    Toast.makeText(getApplicationContext(), "Already canceled one!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Already canceled one!", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Try again", Toast.LENGTH_SHORT).show();
                 }
                 break;
             case 7:
                 if(response_code == 0) {
-                    Toast.makeText(getApplicationContext(), "Succeed!", Toast.LENGTH_SHORT).show();
-                    SessionStorage.expire(getApplicationContext(), "permission.time.receive.start");
+                    Toast.makeText(ctx, "Succeed!", Toast.LENGTH_SHORT).show();
+                    SessionStorage.expire(ctx, "permission.time.receive.start");
                 } else if(response_code == 1) {
-                    Toast.makeText(getApplicationContext(), "It's not correct one!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "It's not correct one!", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(getApplicationContext(), "Try again", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(ctx, "Try again", Toast.LENGTH_SHORT).show();
                 }
                 break;
             default:
-                Toast.makeText(getApplicationContext(), "Unknown response :(", Toast.LENGTH_SHORT).show();
+                Toast.makeText(ctx, "Unknown response :(", Toast.LENGTH_SHORT).show();
         }
     }
 }

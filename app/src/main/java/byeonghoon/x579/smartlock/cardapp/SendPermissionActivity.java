@@ -119,7 +119,7 @@ public class SendPermissionActivity extends AppCompatActivity {
             @Override protected void onPostExecute(Void _void) {
                 afterFinish();
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     public void buttonBackPermPressed() {

@@ -48,6 +48,8 @@ public class PostToServerTask extends AsyncTask<Void, Void, Void> implements Loc
 
     @Override
     protected Void doInBackground(Void... params) {
+        Log.i(TAG, "worker thread start");
+
         final String tag_location = TAG + ".Location";
         Criteria criteria = new Criteria();
         // 정확도
@@ -64,6 +66,7 @@ public class PostToServerTask extends AsyncTask<Void, Void, Void> implements Loc
         criteria.setCostAllowed(true);
         if(manager == null) {
             Toast.makeText(ctx, "Failed to get location", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Failed to get location");
             return null;
         }
 
@@ -90,11 +93,13 @@ public class PostToServerTask extends AsyncTask<Void, Void, Void> implements Loc
             rows.put("longitude", location.getLongitude());
         }
 
+        /*
         try {
             manager.requestLocationUpdates(provider, 0, 0, this);
         } catch (SecurityException se) {
             Log.w(tag_location, se);
         }
+        */
 
         // IoTMakers 연동 설정 정보
         BaseInfo info = new BaseInfo();

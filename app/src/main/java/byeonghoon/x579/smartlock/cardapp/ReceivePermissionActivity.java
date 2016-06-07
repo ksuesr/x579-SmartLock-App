@@ -46,10 +46,10 @@ public class ReceivePermissionActivity extends AppCompatActivity {
             @Override protected void onPostExecute(Void _void) {
                 afterFinish();
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
-    public void buttonBackPermPressed() {
+    public void buttonBackPermPressed(View v) {
         afterFinish();
     }
 

@@ -47,7 +47,7 @@ public class RegisterLockActivity extends AppCompatActivity {
                 else
                     afterFailed();
             }
-        }.execute();
+        }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
     }
 
@@ -73,6 +73,8 @@ public class RegisterLockActivity extends AppCompatActivity {
         SessionStorage.expire(getApplicationContext(), "register.action");
         SessionStorage.expire(getApplicationContext(), "register.action.title");
         SessionStorage.expire(getApplicationContext(), "register.action.complete");
+        SessionStorage.expire(getApplicationContext(), "waiting.response");
+
     }
 
 }

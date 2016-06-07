@@ -1,1 +1,1 @@
-include ':app', ':JAVA_TCP_SDK_2.0.0', ':iotmakers_sdk_android'
+include ':app', ':iotmakers_sdk_android', ':JAVA_TCP_SDK_2.0.0'
