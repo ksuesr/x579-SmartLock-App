@@ -56,9 +56,11 @@ public class CardService extends HostApduService {
             Log.i(TAG, "Waiting response");
             if (Arrays.toString(commandApdu).startsWith(APDU_RESPONSE_HEADER)) {
                 Log.i(TAG, "Receive response");
-                processResponse(commandApdu[4], commandApdu[5]);
-                SessionStorage.expire(ctx, "waiting.response");
-                return UNKNOWN_COMMAND_SW; // means session close.
+                if(processResponse(commandApdu[4], commandApdu[5])) {
+                    SessionStorage.expire(ctx, "waiting.response");
+                    return UNKNOWN_COMMAND_SW; // means session close.
+                }
+                return HexStringToByteArray("ABCDEF");
             } else {
                 return UNKNOWN_COMMAND_SW;
             }
@@ -227,8 +229,9 @@ public class CardService extends HostApduService {
     }
 
 
-    private void processResponse(byte in_response_to, byte response_code) {
+    private boolean processResponse(byte in_response_to, byte response_code) {
         Context ctx = getApplicationContext();
+        boolean is_succeed = (response_code == 0);
         switch(in_response_to) {
             case 0:
                 if(response_code == 0) {
@@ -286,6 +289,8 @@ public class CardService extends HostApduService {
                 break;
             default:
                 Toast.makeText(ctx, "Unknown response :(", Toast.LENGTH_SHORT).show();
+                return false;
         }
+        return is_succeed;
     }
 }
