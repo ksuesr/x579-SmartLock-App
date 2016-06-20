@@ -2,6 +2,9 @@ package byeonghoon.x579.smartlock.cardapp;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
@@ -12,6 +15,7 @@ import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -97,9 +101,11 @@ public class SendPermissionActivity extends AppCompatActivity {
 
         final long start = System.currentTimeMillis();
 
+        String duration_str = (duration < 10) ? "0" + duration : "" + duration;
+
         text_view.setText("Tag lock within 3 minutes to enable");
         //Encrypt!
-        String tempCode = String.valueOf(new SimpleDateFormat("yyyyMMddHHmm").format(new Date(myCalendar.getTimeInMillis())) + "#" + String.valueOf(duration) + "#" + AccountStorage.GetAccount(getApplicationContext(), card_id));
+        String tempCode = String.valueOf(new SimpleDateFormat("yyyyMMddHHmm").format(new Date(myCalendar.getTimeInMillis())) + "#" + duration_str + "#" + AccountStorage.GetAccount(getApplicationContext(), card_id));
         SessionStorage.set(getApplicationContext(), "permission.time.send.start", String.valueOf(start));
         SessionStorage.set(getApplicationContext(), "permission.time.send.duration", "180000");
         SessionStorage.set(getApplicationContext(), "permission.temporary.send.configure", "1");
@@ -111,6 +117,7 @@ public class SendPermissionActivity extends AppCompatActivity {
             @Override protected Void doInBackground(Void... unused) {
                 while(System.currentTimeMillis() <= start + 180000) {
                     if(!SessionStorage.exists(getApplicationContext(), "permission.time.send.start")) {
+                        handleClipBoard();
                         break;
                     }
                 }
@@ -122,7 +129,7 @@ public class SendPermissionActivity extends AppCompatActivity {
         }.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
-    public void buttonBackPermPressed() {
+    public void buttonBackPermPressed(View v) {
         afterFinish();
     }
 
@@ -135,6 +142,14 @@ public class SendPermissionActivity extends AppCompatActivity {
         Intent cancelIntent = new Intent();
         setResult(RESULT_CANCELED, cancelIntent);
         finish();
+    }
+
+    private void handleClipBoard() {
+        ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData data_to_clip = ClipData.newPlainText("code", SessionStorage.get(getApplicationContext(), "permission.temporary.send.code", "0000"));
+
+        clipboard.setPrimaryClip(data_to_clip);
+        Toast.makeText(getApplicationContext(), "Temporal code copied to clipboard", Toast.LENGTH_LONG).show();
     }
 
 }
