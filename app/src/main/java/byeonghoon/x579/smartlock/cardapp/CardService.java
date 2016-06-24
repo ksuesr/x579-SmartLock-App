@@ -25,6 +25,7 @@ public class CardService extends HostApduService {
     private static final String APDU_RESPONSE_HEADER = "EA004DAC";
     private static final byte[] SELECT_OK_SW = HexStringToByteArray("9000");
     private static final byte[] UNKNOWN_COMMAND_SW = HexStringToByteArray("0000");
+    private static final byte[] UNCLEAR_COMMAND_SW = HexStringToByteArray("0010");
 
     private Map<String, Double> input_rows;
     private String type="01";
@@ -54,15 +55,16 @@ public class CardService extends HostApduService {
 
         if(SessionStorage.exists(ctx, "waiting.response")) {
             Log.i(TAG, "Waiting response");
-            if (Arrays.toString(commandApdu).startsWith(APDU_RESPONSE_HEADER)) {
+            if (stringifiedApdu.startsWith(APDU_RESPONSE_HEADER)) {
                 Log.i(TAG, "Receive response");
+                SessionStorage.expire(ctx, "waiting.response");
                 if(processResponse(commandApdu[4], commandApdu[5])) {
-                    SessionStorage.expire(ctx, "waiting.response");
                     return UNKNOWN_COMMAND_SW; // means session close.
                 }
                 return HexStringToByteArray("ABCDEF");
             } else {
-                return UNKNOWN_COMMAND_SW;
+                Log.i(TAG, "Unclear");
+                return UNCLEAR_COMMAND_SW;
             }
         }
 
@@ -118,7 +120,7 @@ public class CardService extends HostApduService {
         } else {
             List<Card> card_list = Card.getCardList();
             for(Card c : card_list) {
-                if(Arrays.equals(target.getApdu(), commandApdu)) {
+                if(Arrays.equals(c.getApdu(), commandApdu)) {
                     target = c;
                     break;
                 }
@@ -238,6 +240,7 @@ public class CardService extends HostApduService {
                     String cardKey = SessionStorage.get(ctx, "register.cardkey", "F000000000");
                     String secret = SessionStorage.get(ctx, "temp.secret", "00000000");
                     String title = SessionStorage.get(ctx, "register.action.title", "smart lock");
+                    Log.i(TAG, "cardKey: " + cardKey + ", secret: " + secret + ", title: " + title);
                     Card.addNewCard(ctx, cardKey, secret, title);
                     Toast.makeText(ctx, "Success!", Toast.LENGTH_SHORT).show();
                     SessionStorage.set(ctx, "register.action.complete", "0");

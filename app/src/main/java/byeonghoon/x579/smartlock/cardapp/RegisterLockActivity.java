@@ -11,6 +11,8 @@ import android.widget.TextView;
 
 public class RegisterLockActivity extends AppCompatActivity {
 
+    EditText edit;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -18,7 +20,7 @@ public class RegisterLockActivity extends AppCompatActivity {
     }
 
     public void buttonStartRegPressed(View v) {
-        EditText edit = (EditText) findViewById(R.id.lock_title);
+        edit = (EditText) findViewById(R.id.lock_title);
         TextView text_view = (TextView) findViewById(R.id.register_direction);
         edit.setEnabled(false);
         text_view.setText("Tag lock to finish register");
@@ -58,6 +60,7 @@ public class RegisterLockActivity extends AppCompatActivity {
     private void afterSuccess() {
         expireRegister();
         Intent okIntent = new Intent();
+        okIntent.putExtra("title", edit.getText().toString());
         setResult(RESULT_OK, okIntent);
         finish();
     }
